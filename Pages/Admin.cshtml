@@ -1,0 +1,173 @@
+﻿@page
+@model AdminModel
+@{
+    ViewData["Title"] = "إدارة البيانات";
+}
+
+<div class="page-header">
+    <h1>⚙️ إدارة البيانات</h1>
+    <p>إضافة وحذف الأصناف والبائعين وأسعارهم</p>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">✅ @TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">⚠️ @TempData["Error"]</div>
+}
+
+<div class="card" style="margin-bottom:1.5rem;">
+    <h2 style="font-size:1.1rem;font-weight:700;color:var(--primary);margin-bottom:1.2rem;">
+        📦 إضافة صنف جديد
+    </h2>
+    <form method="post" asp-page-handler="AddProduct">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">اسم الصنف *</label>
+                <input asp-for="ProductName" class="form-control"
+                       placeholder="مثال: كوع عادي ٣ارباع" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">الكمية</label>
+                <input asp-for="ProductQty" class="form-control"
+                       placeholder="مثال: 250 أو كرتون" />
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">➕ إضافة الصنف</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="margin-bottom:2rem;">
+    <h2 style="font-size:1.1rem;font-weight:700;color:var(--primary);margin-bottom:1.2rem;">
+        🏷️ إضافة سعر بائع
+    </h2>
+    <form method="post" asp-page-handler="AddSeller">
+        <div class="form-grid">
+            <div class="form-group">
+                <label class="form-label">الصنف *</label>
+                <select asp-for="SellerProductId" class="form-control">
+                    <option value="0">-- اختر الصنف --</option>
+                    @foreach (var p in Model.Products)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">اسم البائع *</label>
+                <input asp-for="SellerName" class="form-control"
+                       placeholder="مثال: الحازمي" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">السعر *</label>
+                <input asp-for="SellerPrice" class="form-control"
+                       type="number" step="0.01" min="0" placeholder="0.00" />
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">➕ إضافة السعر</button>
+        </div>
+    </form>
+</div>
+
+<div class="admin-section">
+    <div class="section-header">
+        <div class="section-title">
+            📋 الأصناف المسجلة (@Model.Products.Count صنف)
+        </div>
+    </div>
+
+    @if (!Model.Products.Any())
+    {
+        <div class="empty-state card">
+            <div class="icon">📦</div>
+            <p>لا توجد أصناف مضافة بعد.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>الكمية</th>
+                        <th>عدد البائعين</th>
+                        <th>أقل سعر</th>
+                        <th>إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model.Products)
+                    {
+                        var minP = product.SellerPrices.Any()
+                        ? product.SellerPrices.Min(s => s.Price)
+                        : (decimal?)null;
+                        <tr>
+                            <td><strong>@product.Name</strong></td>
+                            <td>@(product.Quantity ?? "-")</td>
+                            <td>
+                                <span style="background:var(--primary);color:white;
+                                      border-radius:20px;padding:.15rem .65rem;
+                                      font-size:.85rem;">
+                                    @product.SellerPrices.Count
+                                </span>
+                            </td>
+                            <td class="price-cell best-price">
+                                @(minP.HasValue ? minP.Value.ToString("N2") : "-")
+                            </td>
+                            <td>
+                                <form method="post" asp-page-handler="DeleteProduct"
+                                      style="display:inline;"
+                                      onsubmit="return confirm('هل أنت متأكد من حذف هذا الصنف؟')">
+                                    <input type="hidden" name="id" value="@product.Id" />
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        🗑 حذف
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @foreach (var sp in product.SellerPrices.OrderBy(s => s.Price))
+                        {
+                            <tr style="background:#fafbfc;">
+                                <td style="padding-right:2.5rem;color:var(--text-muted);
+                                           font-size:.92rem;">
+                                    ↳ @sp.SellerName
+                                </td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>
+                                    <form method="post" asp-page-handler="EditSeller"
+                                          style="display:flex;gap:.4rem;align-items:center;">
+                                        <input type="hidden" name="id" value="@sp.Id" />
+                                        <input type="number" name="price" value="@sp.Price"
+                                               step="0.01" min="0" class="form-control"
+                                               style="width:100px;padding:.35rem .6rem;
+                                                      font-size:.9rem;" />
+                                        <button type="submit" class="btn btn-outline btn-sm">
+                                            💾
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form method="post" asp-page-handler="DeleteSeller"
+                                          style="display:inline;"
+                                          onsubmit="return confirm('حذف هذا البائع؟')">
+                                        <input type="hidden" name="id" value="@sp.Id" />
+                                        <button type="submit" class="btn btn-danger btn-sm">
+                                            🗑
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

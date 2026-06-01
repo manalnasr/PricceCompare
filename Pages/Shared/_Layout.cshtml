@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - مقارنة الأسعار</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a class="nav-brand" asp-page="/Index">
+                <span class="brand-icon">⚖️</span>
+                <span>مقارنة الأسعار</span>
+            </a>
+            <div class="nav-links">
+                <a class="nav-link" asp-page="/Index">
+                    <span>🔍</span> البحث
+                </a>
+                <a class="nav-link" asp-page="/Admin">
+                    <span>➕</span> إدارة البيانات
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <p>نظام مقارنة الأسعار &copy; @DateTime.Now.Year</p>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

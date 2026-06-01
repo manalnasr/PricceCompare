@@ -1,0 +1,143 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "البحث";
+    var allSellers = Model.Results
+        .SelectMany(p => p.SellerPrices)
+        .Select(s => s.SellerName)
+        .Distinct().OrderBy(s => s).ToList();
+}
+
+<div class="page-header">
+    <h1>🔍 مقارنة الأسعار</h1>
+    <p>ابحث عن أي صنف لمقارنة أسعار البائعين</p>
+</div>
+
+<div class="stats-bar">
+    <div class="stat-card">
+        <div class="stat-label">إجمالي الأصناف</div>
+        <div class="stat-value">@Model.TotalProducts</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">عدد البائعين</div>
+        <div class="stat-value">@Model.TotalSellers</div>
+    </div>
+    @if (Model.Results.Any())
+    {
+        <div class="stat-card">
+            <div class="stat-label">نتائج البحث</div>
+            <div class="stat-value">@Model.Results.Count</div>
+        </div>
+    }
+</div>
+
+<div class="search-box">
+    <form method="get">
+        <div class="search-row">
+            <input type="text" name="Query" value="@Model.Query"
+                   class="search-input"
+                   placeholder="اكتب اسم الصنف للبحث..."
+                   autocomplete="off" autofocus />
+            <button type="submit" class="btn btn-primary">🔍 بحث</button>
+            @if (!string.IsNullOrEmpty(Model.Query))
+            {
+                <a href="/" class="btn btn-outline">✕ مسح</a>
+            }
+        </div>
+    </form>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.Query))
+{
+    if (!Model.Results.Any())
+    {
+        <div class="empty-state card">
+            <div class="icon">🔎</div>
+            <p>لم يتم العثور على نتائج لـ "<strong>@Model.Query</strong>"</p>
+        </div>
+    }
+    else
+    {
+        <div class="compare-card">
+            <div>
+                <div class="product-name">نتائج: "@Model.Query"</div>
+                <div class="sub">تم العثور على @Model.Results.Count صنف</div>
+            </div>
+            <a href="?handler=Export&query=@Uri.EscapeDataString(Model.Query ?? "")"
+               class="btn btn-accent">📥 تصدير Excel</a>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="min-width:220px;">الصنف</th>
+                        <th style="min-width:90px;">الكمية</th>
+                        @foreach (var seller in allSellers)
+                        {
+                            <th>@seller</th>
+                        }
+                        <th style="min-width:110px; background:#1e4d7b;">أفضل سعر ✓</th>
+                        <th style="min-width:90px; background:#1e4d7b;">الفرق</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var product in Model.Results)
+                    {
+                        var prices = product.SellerPrices.Select(s => s.Price).ToList();
+                        var bestPrice  = prices.Any() ? prices.Min() : (decimal?)null;
+                        var worstPrice = prices.Any() ? prices.Max() : (decimal?)null;
+                        var diff = (bestPrice.HasValue && worstPrice.HasValue)
+                            ? worstPrice - bestPrice : null;
+                        <tr>
+                            <td><strong>@product.Name</strong></td>
+                            <td>@(product.Quantity ?? "-")</td>
+                            @foreach (var seller in allSellers)
+                            {
+                                var sp = product.SellerPrices
+                                    .FirstOrDefault(x => x.SellerName == seller);
+                                if (sp != null)
+                                {
+                                    bool isBest = sp.Price == bestPrice;
+                                    <td class="price-cell @(isBest ? "best-price" : "")">
+                                        @if (isBest){<span class="badge-best">✓</span>}
+                                        @sp.Price.ToString("N2")
+                                    </td>
+                                }
+                                else { <td>-</td> }
+                            }
+                            <td class="price-cell best-price">
+                                @(bestPrice.HasValue ? bestPrice.Value.ToString("N2") : "-")
+                            </td>
+                            <td class="@(diff > 0 ? "diff-positive" : "")">
+                                @(diff.HasValue ? diff.Value.ToString("N2") : "-")
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}
+else
+{
+    <div class="card" style="text-align:center; padding:3rem 1rem; color:var(--text-muted);">
+        <div style="font-size:3rem; margin-bottom:1rem;">⚖️</div>
+        <p style="font-size:1.1rem; font-weight:500;">
+            اكتب اسم الصنف في خانة البحث لمقارنة الأسعار
+        </p>
+        <p style="margin-top:.5rem; font-size:.9rem;">
+            أو <a href="/Admin" style="color:var(--primary-light)">
+            أضف أصناف جديدة</a> من صفحة الإدارة
+        </p>
+    </div>
+}
+
+@if (Model.TotalProducts > 0 && string.IsNullOrEmpty(Model.Query))
+{
+    <div style="text-align:center; margin-top:1.5rem;">
+        <a href="?handler=Export" class="btn btn-accent">
+            📥 تصدير كل البيانات Excel
+        </a>
+    </div>
+}
